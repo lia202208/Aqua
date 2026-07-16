@@ -87,6 +87,19 @@
     </div>
   </div>
 
+  <!-- Estado Ascensores -->
+  <div class="bg-white rounded-2xl shadow p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-slate-700 font-semibold text-sm">🏢 Estado Actual de Ascensores</h2>
+      <div class="flex gap-4 text-xs text-slate-400">
+        <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-green-400"></span> Operativo</span>
+        <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-400"></span> En Observación</span>
+        <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span> Detenido</span>
+      </div>
+    </div>
+    <div id="asc-status-grid" class="flex flex-wrap gap-6 justify-center items-end py-2"></div>
+  </div>
+
   <!-- Charts -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
     <div class="bg-white rounded-2xl shadow p-5">
@@ -513,6 +526,7 @@ async function actualizarDatos() {
     renderAverias(averiasData);
     renderMant(mantData);
     renderRep(repData);
+    renderEstadoAscensores();
     filterTable();
 
     // Actualizar contadores KPI en tabs
@@ -570,7 +584,7 @@ new Chart(document.getElementById('chartEstado'),{
   options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
 });
 
-// ── CHART ASCENSOR ────────────────────────────────────────────
+// ── CHART ASCENSOR ─────────────────────────────────────────────
 // Mapa numérico → etiqueta Asc (solo mostrar Asc N en el gráfico)
 const NUM_TO_ASC = {
   '1311':'Asc 1','1312':'Asc 2','1313':'Asc 3',
@@ -641,6 +655,41 @@ new Chart(document.getElementById('chartAscensor'),{
     }
   }
 });
+
+// ── ESTADO ASCENSORES ─────────────────────────────────────────
+// (definido aquí, después de NUM_TO_ASC y extractAscIds)
+const ASC_IDS = ['Asc 1','Asc 2','Asc 3','Asc 4'];
+
+function semColorClass(estado) {
+  if (estado === 'Operativo')      return { outer:'bg-green-100',  circle:'bg-green-400',  shadow:'shadow-green-300',  label:'text-green-700',  pulse:true  };
+  if (estado === 'En Observación') return { outer:'bg-yellow-100', circle:'bg-yellow-400', shadow:'shadow-yellow-300', label:'text-yellow-700', pulse:false };
+  if (estado === 'Detenido')       return { outer:'bg-red-100',    circle:'bg-red-500',    shadow:'shadow-red-300',    label:'text-red-700',    pulse:false };
+  return                                  { outer:'bg-slate-100',  circle:'bg-slate-300',  shadow:'shadow-slate-200',  label:'text-slate-500',  pulse:false };
+}
+
+function renderEstadoAscensores() {
+  const grid = document.getElementById('asc-status-grid');
+  if (!grid) return;
+  const semaforos = ASC_IDS.map(asc => {
+    const reciente = averiasData.find(r => extractAscIds(r[2]).includes(asc));
+    return { asc, estado: reciente ? reciente[8] : 'Operativo' };
+  });
+  grid.innerHTML = semaforos.map(s => {
+    const c = semColorClass(s.estado);
+    return `
+      <div class="flex flex-col items-center gap-3 px-6 py-4">
+        <div class="w-16 h-16 rounded-full ${c.outer} flex items-center justify-center shadow-md">
+          <div class="relative w-10 h-10 rounded-full ${c.circle} shadow-lg ${c.shadow}">
+            ${c.pulse ? `<span class="animate-ping absolute inline-flex h-full w-full rounded-full ${c.circle} opacity-50"></span>` : ''}
+          </div>
+        </div>
+        <span class="font-bold text-slate-700 text-sm">${s.asc}</span>
+        <span class="text-xs font-semibold ${c.label} -mt-2">${s.estado === 'Detenido' ? 'Detenciones' : s.estado}</span>
+      </div>`;
+  }).join('');
+}
+
+renderEstadoAscensores();
 
 new Chart(document.getElementById('chartTecnico'),{
   type:'bar',
