@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edificio Concepto Aqua v1.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family:'Inter',sans-serif; }
+    .tab-btn.active { background:#1e40af; color:#fff; }
+    .tab-btn { transition:all .2s; }
+    tr:hover td { background:#eff6ff !important; transition:.15s; }
+    .badge-op  { background:#dcfce7; color:#166534; }
+    .badge-obs { background:#fef9c3; color:#854d0e; }
+    .badge-det { background:#fee2e2; color:#991b1b; }
+    .badge-fin { background:#e0e7ff; color:#3730a3; }
+    th { position:sticky; top:0; z-index:10; }
+    .table-wrap { max-height:480px; overflow-y:auto; }
+    th.sortable { cursor:pointer; user-select:none; }
+    th.sortable:hover { opacity:.8; }
+    th.sort-asc::after  { content:" ▲"; font-size:9px; }
+    th.sort-desc::after { content:" ▼"; font-size:9px; }
+    .active-ef { background:#1e40af; color:#fff; border-color:#1e40af; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="bg-blue-900 text-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="bg-blue-400 rounded-xl p-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold">Edificio Concepto Aqua</h1>
+        <p class="text-blue-300 text-xs">Sistema de Gestión de Mantenimiento · v1.0 · Quality Tech</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <button id="btn-actualizar" onclick="actualizarDatos()"
+        class="flex items-center gap-2 bg-blue-700 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow">
+        <span id="act-icon">🔄</span>
+        <span id="act-text">Actualizar</span>
+      </button>
+      <div class="text-right">
+        <p class="text-blue-200 text-sm" id="fecha-actual"></p>
+        <p class="text-blue-400 text-xs">Morande 580 · Santiago · Rut 53.311.303-6</p>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+  <!-- KPIs -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-blue-500">
+      <p class="text-slate-400 text-xs font-medium uppercase tracking-wide">Total Docs</p>
+      <p class="text-4xl font-bold text-blue-700 mt-1">40</p>
+      <p class="text-slate-400 text-xs mt-1">documentos procesados</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-orange-400">
+      <p class="text-slate-400 text-xs font-medium uppercase tracking-wide">Rep. Averías</p>
+      <p class="text-4xl font-bold text-orange-500 mt-1">22</p>
+      <p class="text-slate-400 text-xs mt-1">órdenes de trabajo</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-emerald-500">
+      <p class="text-slate-400 text-xs font-medium uppercase tracking-wide">Partes Mant.</p>
+      <p class="text-4xl font-bold text-emerald-600 mt-1">15</p>
+      <p class="text-slate-400 text-xs mt-1">inspecciones</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-violet-500">
+      <p class="text-slate-400 text-xs font-medium uppercase tracking-wide">Reparaciones</p>
+      <p class="text-4xl font-bold text-violet-600 mt-1">3</p>
+      <p class="text-slate-400 text-xs mt-1">partes de reparación</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-red-400">
+      <p class="text-slate-400 text-xs font-medium uppercase tracking-wide">Detenidos</p>
+      <p class="text-4xl font-bold text-red-500 mt-1">2</p>
+      <p class="text-slate-400 text-xs mt-1">Averías</p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div class="bg-white rounded-2xl shadow p-5">
+      <h2 class="text-slate-600 font-semibold text-sm mb-3">Distribución por Tipo</h2>
+      <div class="h-44"><canvas id="chartTipo"></canvas></div>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-5">
+      <h2 class="text-slate-600 font-semibold text-sm mb-3">Estado Averías</h2>
+      <div class="h-44"><canvas id="chartEstado"></canvas></div>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-5">
+      <h2 class="text-slate-600 font-semibold text-sm mb-3">Técnicos (Top 6)</h2>
+      <div class="h-44"><canvas id="chartTecnico"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Chart distribución por ascensor -->
+  <div class="bg-white rounded-2xl shadow p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-slate-600 font-semibold text-sm">Distribución por Ascensor / Equipo y Tipo de Documento</h2>
+      <span class="text-xs text-slate-400">Hover para detalle · barras apiladas</span>
+    </div>
+    <div style="height:220px"><canvas id="chartAscensor"></canvas></div>
+  </div>
+
+  <!-- Tabla principal -->
+  <div class="bg-white rounded-2xl shadow overflow-hidden">
+
+    <!-- Tabs -->
+    <div class="flex flex-wrap border-b border-slate-200 bg-slate-50 px-5 pt-4 gap-2">
+      <button onclick="showTab('averias')" id="btn-averias"
+        class="tab-btn active text-sm font-medium px-4 py-2 rounded-t-lg">
+        🔧 Reportes Averías <span class="ml-1 bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">22</span>
+      </button>
+      <button onclick="showTab('mant')" id="btn-mant"
+        class="tab-btn text-sm font-medium px-4 py-2 rounded-t-lg text-slate-500 hover:text-blue-700">
+        🛠 Partes Mant. <span class="ml-1 bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full">15</span>
+      </button>
+      <button onclick="showTab('rep')" id="btn-rep"
+        class="tab-btn text-sm font-medium px-4 py-2 rounded-t-lg text-slate-500 hover:text-violet-700">
+        🔩 Reparaciones <span class="ml-1 bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full">3</span>
+      </button>
+    </div>
+
+    <!-- Barra de herramientas averias -->
+    <div id="toolbar-averias" class="px-5 py-3 border-b border-slate-100 flex gap-2 items-center bg-orange-50">
+      <span class="text-xs font-medium text-orange-700">Ordenar por fecha:</span>
+      <button id="btn-fecha-asc" onclick="setDateSort('asc')"
+        class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 border-orange-300 bg-white text-orange-700 hover:bg-orange-100 transition">
+        ↑ Más antiguo primero
+      </button>
+      <button id="btn-fecha-desc" onclick="setDateSort('desc')"
+        class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 border-transparent bg-white text-slate-500 hover:bg-orange-100 transition">
+        ↓ Más reciente primero
+      </button>
+    </div>
+
+    <!-- Filtros de estado (solo averias) -->
+    <div id="estado-filters" class="px-5 py-2 border-b border-slate-100 flex flex-wrap gap-2 items-center bg-slate-50">
+      <span class="text-xs font-medium text-slate-500">Estado:</span>
+      <button onclick="setEstadoFilter('Todos')"      id="ef-Todos"         class="ef-btn active-ef text-xs px-3 py-1 rounded-full border font-medium transition">Todos</button>
+      <button onclick="setEstadoFilter('Operativo')"  id="ef-Operativo"     class="ef-btn text-xs px-3 py-1 rounded-full border font-medium transition text-slate-500 border-slate-300 bg-white hover:bg-slate-100">🟢 Operativo</button>
+      <button onclick="setEstadoFilter('En Observación')" id="ef-En Observación" class="ef-btn text-xs px-3 py-1 rounded-full border font-medium transition text-slate-500 border-slate-300 bg-white hover:bg-slate-100">🟡 En Observación</button>
+      <button onclick="setEstadoFilter('Detenido')"   id="ef-Detenido"      class="ef-btn text-xs px-3 py-1 rounded-full border font-medium transition text-slate-500 border-slate-300 bg-white hover:bg-slate-100">🔴 Detenido</button>
+    </div>
+
+    <!-- Buscador -->
+    <div class="px-5 py-3 border-b border-slate-100 flex gap-2 items-center">
+      <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input id="search-input" onkeyup="filterTable()" type="text"
+        placeholder="Buscar por número, fecha, técnico, equipo..."
+        class="w-full text-sm outline-none text-slate-600 placeholder-slate-400"/>
+      <span id="count-badge" class="shrink-0 text-xs text-slate-400"></span>
+    </div>
+
+    <!-- TABLA AVERÍAS -->
+    <div id="tab-averias" class="table-wrap">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="bg-orange-50 text-orange-900">
+            <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">N° Reporte</th>
+            <th id="th-fecha" onclick="sortAverias(1)" class="px-3 py-3 text-left font-semibold whitespace-nowrap sortable">Fecha</th>
+            <th id="th-eq"    onclick="sortAverias(2)" class="px-3 py-3 text-left font-semibold sortable">EQ</th>
+            <th class="px-3 py-3 text-left font-semibold">Técnico</th>
+            <th class="px-3 py-3 text-left font-semibold max-w-xs">Trabajos Realizados</th>
+            <th class="px-3 py-3 text-left font-semibold">Observaciones</th>
+            <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">F. Salida</th>
+            <th class="px-3 py-3 text-left font-semibold">Rep. Cliente</th>
+            <th id="th-estado" onclick="sortAverias(8)" class="px-3 py-3 text-left font-semibold sortable">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="body-averias" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+
+    <!-- TABLA MANTENIMIENTO -->
+    <div id="tab-mant" class="table-wrap hidden">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="bg-emerald-50 text-emerald-900">
+            <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">N° Parte</th>
+            <th id="th-mant-fecha" onclick="sortMant()" class="px-3 py-3 text-left font-semibold whitespace-nowrap sortable sort-desc">Fecha</th>
+            <th class="px-3 py-3 text-left font-semibold">Concepto</th>
+            <th class="px-3 py-3 text-left font-semibold">OTM 01 / EQ</th>
+            <th class="px-3 py-3 text-left font-semibold">OTM 02 / EQ</th>
+            <th class="px-3 py-3 text-left font-semibold">Técnico</th>
+            <th class="px-3 py-3 text-left font-semibold max-w-sm">Obs / Adicionales</th>
+            <th class="px-3 py-3 text-left font-semibold">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="body-mant" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+
+    <!-- TABLA REPARACIONES -->
+    <div id="tab-rep" class="table-wrap hidden">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="bg-violet-50 text-violet-900">
+            <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">N° Parte</th>
+            <th id="th-rep-fecha" onclick="sortRep()" class="px-3 py-3 text-left font-semibold whitespace-nowrap sortable sort-desc">F. Inicio</th>
+            <th class="px-3 py-3 text-left font-semibold whitespace-nowrap">F. Término</th>
+            <th class="px-3 py-3 text-left font-semibold">N° OT / PPTO</th>
+            <th class="px-3 py-3 text-left font-semibold">Técnico</th>
+            <th class="px-3 py-3 text-left font-semibold max-w-sm">Trabajos Realizados</th>
+            <th class="px-3 py-3 text-left font-semibold">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="body-rep" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+
+
+  </div>
+
+  <p class="text-center text-xs text-slate-400 pb-2">
+    Quality Tech Maintenance Service · Antonio Varas 2615, Ñuñoa, Santiago · +56 2 2264 9867
+  </p>
+</main>
+
+<script>
+// ── DATOS ──────────────────────────────────────────────────────
+let averias = [
+  ["A000067957","30/12/25","Asc 2","Yerho Vásquez","Conectar módulo MPK70BA a red comunicación, problema llamados pasillo. Botonera piso alimentador desconectado.","Ascensores operativos","30/12/25","I.B.C","Operativo"],
+  ["A000068627","08/01/26","1311-1312","Felipe Araya CH","Cambio botoneras del -2 pasillo por piso 1. Desconecta botoneras pisos -1,-2,-3 display malos. Reemplaza display botonera pasillo -1.","Asc en observación, trabajos pendientes botoneras y cables","09/01/26","—","En Observación"],
+  ["A000067989","07/01/26","Asc 2","Yerho Vásquez","Cambio módulo MPK70BAC por problemas comunicación llamados. Verificación botonera pasillo 1.","Ascensores operativos 1, 3 y 4","07/01/26","Adriana Yériz","Operativo"],
+  ["A000066940","08/02/26","Asc 1 y 2","Fernando Palacios G.","Desbloquea sistema Duplex llamados AAV en cuadro maniobra quedando operativo. Se entregan llaves salas de máquinas.","—","—","Adriana Morino","Operativo"],
+  ["A000068453","13/02/26","Asc 3","Fernando Palacios G.","Encuentra detenido entre pisos -1 y -2 con persona atrapada. Rescate persona y ajusta accionamiento mecánico contacto eléctrico pta. cabina.","Se entregan llaves salas de máquinas","—","Edif. Concepto Aqua","Operativo"],
+  ["A000071970","08/02/26","1313","Jorge Chávez","Botonera piso 1 no realizó llamados. Normaliza botonera piso 1 y prueba equipos. Ascensores operativos.","—","08/02/26","Adriana Martínez","Operativo"],
+  ["A000068909","06/02/26","Asc 2","Yerho Vásquez","Trabajos instalación desflote pisos 2,-1,-2,-3 Asc1; pisos -1,-2,-3 Asc2. Se programará visita normalizar cables.","Ascensores detenidos","06/02/26","—","Detenido"],
+  ["A000070264","10/02/26","1313","Cristóbal Thoron","Rescate personas atrapadas. Revisión equipo, limpieza rieles cabina, revisa puertas pisos, magnéticos cabina. Equipo queda en observación.","Ascensores operativos","10/02/26","Pacheco","En Observación"],
+  ["A000071898","18/02/26","1312","Esteban Saavedra","Asc detenido. Ajusta contacto puerta de cabina. Ascensor queda operativo.","—","18/02/26","Adriana Norín","Operativo"],
+  ["A000069859","19/04/26","Asc 2 / 1312","Mauricio Muñoz","Ascensor se encontró operativo. Revisión sin fallas. Entrega llave sala máquinas.","—","19/04/26","Adriana (firma)","Operativo"],
+  ["A000071687","03/05/26","Asc 2","Matías Durán M.","Equipo detenido al llegada. Revisión contacto puerta piso 2. Revisión botones piso 2 pasillo. Asc operativo.","—","03/05/26","Marcos Manz","Operativo"],
+  ["A000069241","26/05/26","1313","Javier Huanquilen","Asc detenido piso 1 display E14. Revisión operador puerta, normalización posición, pruebas funcionamiento.","—","26/05/26","Gilberto Valader","En Observación"],
+  ["A000071235","10/05/26","1313","Javier Huanquilen","Cambio selector normal. Inspección cuadro control, sobre cabina. Prueba funcionamiento. Asc operativo.","Se dejan selectores malos en sala de máquinas","10/05/26","Alex Cue","Operativo"],
+  ["A000069301","10/05/26","1312","Felipe Araya CH","Equipo detenido. Revisión puertas piso x cabina. Ajusta puerta. Ascensor operativo. Se entregan llaves.","Se entregan llaves","10/05/26","Marcos Ma","Operativo"],
+  ["A000069279","18/05/26","1311","Cristóbal Thoron","Display pasillo piso 25 apagado. Restablece comunicación display pasillo piso 25. Prueba equipo sin problemas.","Ascensor operativo","18/05/26","Alejandro P.","Operativo"],
+  ["A000071614","16/05/26","1312","Jorge Chávez","Asc bloqueado piso 18 error 18. Revisión contactoras potencia y relés (sin novedades). Asc operativo en observación por posible bloqueo variador.","—","16/05/26","Gilberto Valader","En Observación"],
+  ["A000070612","04/07/26","1313","Esteban Saavedra","Asc detenido. Ajusta contacto puerta cabina. Equipo queda operativo. No aplica puente.","—","07/07/26","Ana Briceño","Operativo"],
+  ["A000072006","07/07/26","1312","Cristóbal Thoron","Ruido en máquina. Equipo detenido. Revisión motor tracción. Se coordinaron trabajos.","Ascensor detenido","07/07/26","Alejandro Pacheco","Detenido"],
+  ["A000072015","08/07/26","1312","Luis Apablaza","Revisión ruido acoplamiento motor-reductor. Se deja operativo. Gomas de acoplamientos a reemplazar. Equipo no presenta riesgo.","—","08/07/26","Gilberto Velada","Operativo"],
+  ["A000070138","12/07/26","1311","Manuel Arroyo","Desconecta display pisos -1,-2,-3. Se deben normalizar. Equipo operativo.","—","12/07/26","Adriana Yériz","Operativo"],
+  ["A000071177","23/07/26","1312","Julio Valdés","Cambio contacto puerta piso 18 que se encontraba trizado.","Ascensores operativos","23/07/26","—","Operativo"],
+  ["A000071163","18/07/26","Asc 2","Yerho Vásquez","Cambio Fuente 24V y mejora voltaje de salida. Ascensores en observación. Viajes de prueba sin problema.","Ascensores operativos","18/07/26","Alejandro Pacheco","Operativo"],
+];
+
+let mantenimiento = [
+  ["M000061324","—","Concepto Aqua","OTM1 / 1311","OTM2 / 1311","Loranto Contreras","Mantención inicial. Revisión seguridades eléctricas y mecánicas. Sin citofonía ni alarma emergencia (1,2,3,4). Paragolpe contrapeso deshabilitado (3). Cuña cabina y pesa limitador mal estado (4).","Operativo"],
+  ["M000062042","19/02/26","AQUA (A)","OTM01 / 1311","OTM02 / 1312","Vicente Vilches","Asc01/02: Desgaste guías cabina, cabina se mueve al trabajar. Luz ducto malas condiciones. Ascensores operativos.","Operativo"],
+  ["M000062043","19/02/26","AQUA (B)","OTM03 / 1313","OTM04 / 1310","Vicente Vilches","Asc03/04: Desgaste guías cabina, se percibe movimiento desalineación. Luz ducto mal estado. Ascensores operativos.","Operativo"],
+  ["M000062074","Enero 26","Morande 580 Torre A","OTM Asc1 / 1311","OTM Asc2 / 1312","Fabián Soto","Asc2: desgaste guías cabina. Botoneras pasillo malas pisos -1,-2,-3. Equipos y cámaras operativos. Mantención mes enero.","Operativo"],
+  ["M000062075","Enero 26","Morande 580 Torre B","OTM Asc3 / 1313","OTM Asc4 / 1314","Fabián Soto","Asc3: desgaste contactos cabina. Asc4: desgaste guías contrapeso. Equipos operativos. Mantención mes enero.","Operativo"],
+  ["M000062937","27/03/26","Morande 580","OTM1 / 1311","OTM2 / 1312","Juan Osorio","Aseo en: Brakes, vigas, cabina (sobre cabina). Mejora de aseo Asc1 y Asc2.","Operativo"],
+  ["M000063123","18/03/26","AQUA (A)","OTM01 / 1311","OTM02 / 1312","Vicente Vilches","Asc01: Contactos sin tapa, desgaste guías. Asc02: Desgaste guías y desaplome rieles. Cabinas operativas 2/2.","Operativo"],
+  ["M000063124","18/03/26","AQUA (B)","OTM03 / 1313","OTM04 / 1910","Vicente Vilches","Asc03: Guías desgastadas, contactos piso 1 desgastados. Asc04: Contactos sin tapa, contacto piso 1 desgastado. Cabinas operativas 2/2.","Operativo"],
+  ["M000063148","20/04/26","AQUA (A)","OTM01 / 1911","OTM02 / 1910","Vicente Vilches","Asc01/02: Guías desgastadas, contactos sin tapa. Luz ducto buen estado. Compras operativas 2/2. Ascensores operativos 2/2.","Operativo"],
+  ["M000063149","20/04/26","AQUA (A)","OTM03 / 1313","OTM04 / 1910","Vicente Vilches","Pasc01: Guías desgastadas, movimiento sobre cabina. Pasc02: Contactos pisos inferiores desgastados. Cabinas operativas 2/2.","Operativo"],
+  ["M000064022","20/05/26","AQUA (A)","OTM01 / 1311","OTM02 / 1910","Vicente Vilches","Pasc01: Desgaste contactos, puerta cabina, guías. Orc02: Desgaste contacto piso 1 y guías. Luz ducto poca luminación. Operativos 2/2.","Operativo"],
+  ["M000064023","20/05/26","AQUA (B)","OTM03 / 1313","OTM04 / 1910","Vicente Vilches","Pasc03/04: Desplome rieles, desgaste guías cabina. Luz ducto poca luminación. Compras operativas 2/2. Ascensores operativos 2/2.","Operativo"],
+  ["M000064046","16/06/26","AQUA (A)","OTM01 / 1311","OTM02 / 1312","Vicente Vilches","Pasc01: Contacto piso 1 desgastado, guías y rieles desplomados. Pasc02: Botón piso bajar malo. Guías y rieles desplomados. Luz ducto mejorable. Operativos 2/2.","Operativo"],
+  ["M000064047","16/06/26","AQUA (B)","OTM03 / 1313","OTM04 / 1910","Vicente Vilches","Pasc03: Guías desgastadas, rieles desaplomados, capo piso -7 malo. Pasc04: Guías y rieles desaplomados. Luz ducto mal luminación. Operativos 2/2.","Operativo"],
+  ["M000062075b","Enero 26","Morande 580 Torre B","OTM Asc3 / 1313","OTM Asc4 / 1314","Fabián Soto","Asc3: desgaste contactos cabina. Asc4: desgaste guías contrapeso. Equipos operativos. Mantención mes enero.","Operativo"],
+];
+
+let reparaciones = [
+  ["R0000006745","29/04/26","—","—","Miguel Vera","Re-manguera cable plomero por encubrimiento de cable en EQ N°1 y 3. Bobina cable mala dejada en sala de máquinas.","Finalizado"],
+  ["R0000006881","—","22/04/26","395-4221-2026-3475-3390","Andrés Morales","Normalización contacto seguridad volante rescate Asc 1-4. Instructivo desgaste manual. Paragolpe contrapeso. Acortamiento cables tracción Asc 1 y 3. Seguridad paragolpes cabina Asc4. Contactos polea tensora Asc 1-4. Equipos operativos.","Finalizado"],
+  ["R0000051632","09/05/26","10/05/26","OT 3951.4196-2026-3408-3338","Javier Huanquilen","Suministro e instalación de bobina de freno (SYS 4768). Bobina mala dejada en sala de máquinas.","Finalizado"],
+];
+
+// ── RENDER ─────────────────────────────────────────────────────
+function badgeHtml(estado) {
+  const map = {"Operativo":"badge-op","En Observación":"badge-obs","Detenido":"badge-det","Finalizado":"badge-fin"};
+  return `<span class="${map[estado]||'badge-obs'} text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">${estado}</span>`;
+}
+
+function renderAverias(data) {
+  document.getElementById("body-averias").innerHTML = data.map((r,i) => `
+    <tr class="${i%2===0?'bg-white':'bg-slate-50'}">
+      <td class="px-3 py-2 font-mono text-blue-700 font-semibold whitespace-nowrap">${r[0]}</td>
+      <td class="px-3 py-2 whitespace-nowrap text-slate-600">${r[1]}</td>
+      <td class="px-3 py-2 whitespace-nowrap font-medium text-slate-700">${r[2]}</td>
+      <td class="px-3 py-2 text-slate-600">${r[3]}</td>
+      <td class="px-3 py-2 text-slate-600 max-w-xs leading-relaxed">${r[4]}</td>
+      <td class="px-3 py-2 text-slate-500 italic">${r[5]}</td>
+      <td class="px-3 py-2 whitespace-nowrap text-slate-600">${r[6]}</td>
+      <td class="px-3 py-2 text-slate-600">${r[7]}</td>
+      <td class="px-3 py-2">${badgeHtml(r[8])}</td>
+    </tr>`).join("");
+}
+
+function renderMant(data) {
+  document.getElementById("body-mant").innerHTML = data.map((r,i) => `
+    <tr class="${i%2===0?'bg-white':'bg-slate-50'}">
+      <td class="px-3 py-2 font-mono text-emerald-700 font-semibold whitespace-nowrap">${r[0]}</td>
+      <td class="px-3 py-2 whitespace-nowrap text-slate-600">${r[1]}</td>
+      <td class="px-3 py-2 font-medium text-slate-700">${r[2]}</td>
+      <td class="px-3 py-2 text-slate-600 whitespace-nowrap">${r[3]}</td>
+      <td class="px-3 py-2 text-slate-600 whitespace-nowrap">${r[4]}</td>
+      <td class="px-3 py-2 text-slate-600">${r[5]}</td>
+      <td class="px-3 py-2 text-slate-500 leading-relaxed max-w-sm">${r[6]}</td>
+      <td class="px-3 py-2">${badgeHtml(r[7])}</td>
+    </tr>`).join("");
+}
+
+function renderRep(data) {
+  document.getElementById("body-rep").innerHTML = data.map((r,i) => `
+    <tr class="${i%2===0?'bg-white':'bg-slate-50'}">
+      <td class="px-3 py-2 font-mono text-violet-700 font-semibold whitespace-nowrap">${r[0]}</td>
+      <td class="px-3 py-2 whitespace-nowrap text-slate-600">${r[1]}</td>
+      <td class="px-3 py-2 whitespace-nowrap text-slate-600">${r[2]}</td>
+      <td class="px-3 py-2 text-slate-600 text-xs">${r[3]}</td>
+      <td class="px-3 py-2 text-slate-600">${r[4]}</td>
+      <td class="px-3 py-2 text-slate-500 leading-relaxed max-w-sm">${r[5]}</td>
+      <td class="px-3 py-2">${badgeHtml(r[6])}</td>
+    </tr>`).join("");
+}
+
+// Orden de estado para ordenamiento lógico
+const estadoOrder = {"Detenido":0,"En Observación":1,"Operativo":2,"Finalizado":3};
+
+// Parsear fecha DD/MM/YY o DD/MM/YYYY → timestamp (— = 0)
+function parseDate(s) {
+  if(!s || s==='—') return 0;
+  const p = s.split('/');
+  if(p.length<3) return 0;
+  const y = p[2].length===2 ? 2000+parseInt(p[2]) : parseInt(p[2]);
+  return new Date(y, parseInt(p[1])-1, parseInt(p[0])).getTime();
+}
+
+function sortByDateDesc(data, col) {
+  return [...data].sort((a,b) => parseDate(b[col]) - parseDate(a[col]));
+}
+
+let averiasData = sortByDateDesc(averias, 1);
+let mantData    = sortByDateDesc(mantenimiento, 1);
+let repData     = sortByDateDesc(reparaciones, 1);
+let sortCol = 1, sortDir = -1;
+const sortThIds = {1:'th-fecha', 2:'th-eq', 8:'th-estado'};
+
+function sortAverias(col) {
+  if(sortCol===col) { sortDir*=-1; } else { sortCol=col; sortDir=1; }
+  averiasData.sort((a,b)=>{
+    let va = a[col], vb = b[col];
+    if(col===1 || col===6) { va=parseDate(va); vb=parseDate(vb); }
+    else if(col===8) { va=estadoOrder[va]??99; vb=estadoOrder[vb]??99; }
+    else { va=(va||'').toLowerCase(); vb=(vb||'').toLowerCase(); }
+    return va<vb ? -sortDir : va>vb ? sortDir : 0;
+  });
+  // Actualizar indicadores
+  Object.entries(sortThIds).forEach(([c,id])=>{
+    const el=document.getElementById(id);
+    el.classList.remove('sort-asc','sort-desc');
+    if(parseInt(c)===col) el.classList.add(sortDir===1?'sort-asc':'sort-desc');
+  });
+  renderAverias(averiasData);
+}
+
+renderAverias(averiasData);
+renderMant(mantData);
+renderRep(repData);
+
+// Activar botón "más reciente primero" por defecto
+document.getElementById('btn-fecha-desc').classList.remove('border-transparent','bg-white','text-slate-500');
+document.getElementById('btn-fecha-desc').classList.add('border-orange-400','bg-orange-100','text-orange-700');
+document.getElementById('th-fecha').classList.add('sort-desc');
+
+function setDateSort(dir) {
+  averiasData = sortByDateDesc(averias, 1);
+  if(dir==='asc') averiasData.reverse();
+  // Actualizar botones
+  const actCls = ['border-orange-400','bg-orange-100','text-orange-700'];
+  const inactCls = ['border-transparent','bg-white','text-slate-500'];
+  ['asc','desc'].forEach(d => {
+    const btn = document.getElementById('btn-fecha-'+d);
+    btn.classList.remove(...actCls,...inactCls);
+    btn.classList.add(...(d===dir ? actCls : inactCls));
+  });
+  // Limpiar indicadores de columna
+  ['th-fecha','th-eq','th-estado'].forEach(id => {
+    document.getElementById(id).classList.remove('sort-asc','sort-desc');
+  });
+  document.getElementById('th-fecha').classList.add(dir==='asc'?'sort-asc':'sort-desc');
+  sortCol=1; sortDir=dir==='asc'?1:-1;
+  renderAverias(averiasData);
+}
+
+let mantDir = -1;
+function sortMant() {
+  mantDir *= -1;
+  mantData = sortByDateDesc(mantenimiento, 1);
+  if(mantDir === 1) mantData.reverse();
+  const th = document.getElementById('th-mant-fecha');
+  th.classList.toggle('sort-asc', mantDir===1);
+  th.classList.toggle('sort-desc', mantDir===-1);
+  renderMant(mantData);
+}
+
+let repDir = -1;
+function sortRep() {
+  repDir *= -1;
+  repData = sortByDateDesc(reparaciones, 1);
+  if(repDir === 1) repData.reverse();
+  const th = document.getElementById('th-rep-fecha');
+  th.classList.toggle('sort-asc', repDir===1);
+  th.classList.toggle('sort-desc', repDir===-1);
+  renderRep(repData);
+}
+
+// ── TABS ───────────────────────────────────────────────────────
+function showTab(tab) {
+  ['averias','mant','rep'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==tab);
+    const btn = document.getElementById('btn-'+t);
+    btn.classList.toggle('active', t===tab);
+    btn.classList.toggle('text-slate-500', t!==tab);
+  });
+  document.getElementById('toolbar-averias').classList.toggle('hidden', tab!=='averias');
+  document.getElementById('estado-filters').classList.toggle('hidden', tab!=='averias');
+  document.getElementById('search-input').value='';
+  filterTable();
+}
+
+// ── FILTRO ESTADO ──────────────────────────────────────────────
+let estadoFiltro = 'Todos';
+function setEstadoFilter(estado) {
+  estadoFiltro = estado;
+  document.querySelectorAll('.ef-btn').forEach(b => {
+    b.classList.remove('active-ef');
+    b.classList.add('text-slate-500','border-slate-300','bg-white');
+  });
+  const btn = document.getElementById('ef-'+estado);
+  btn.classList.add('active-ef');
+  btn.classList.remove('text-slate-500','border-slate-300','bg-white');
+  filterTable();
+}
+
+// ── FILTRO TEXTO ────────────────────────────────────────────────
+// Columnas de búsqueda por tab: averias=[0,1,2,3,6,7], mant=[0,1,2,3,4,5], rep=[0,1,2,3,4]
+const searchCols = { averias:[0,1,2,3,6,7], mant:[0,1,2,3,4,5], rep:[0,1,2,3,4] };
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const activeTab = ['averias','mant','rep'].find(t => !document.getElementById('tab-'+t).classList.contains('hidden'));
+  const tbody = document.getElementById('body-'+activeTab);
+  const cols = searchCols[activeTab];
+  let vis = 0;
+  tbody.querySelectorAll('tr').forEach(r => {
+    const cells = r.querySelectorAll('td');
+    // Filtro texto: solo columnas seleccionadas
+    const textMatch = q === '' || cols.some(i => cells[i]?.textContent.toLowerCase().includes(q));
+    // Filtro estado: solo en pestaña averias (columna índice 8)
+    const estadoMatch = activeTab !== 'averias' || estadoFiltro === 'Todos'
+      || cells[8]?.textContent.trim() === estadoFiltro;
+    const show = textMatch && estadoMatch;
+    r.style.display = show ? '' : 'none';
+    if(show) vis++;
+  });
+  document.getElementById('count-badge').textContent = `${vis} resultado(s)`;
+}
+
+filterTable();
+
+// ── FECHA ──────────────────────────────────────────────────────
+document.getElementById('fecha-actual').textContent =
+  new Date().toLocaleDateString('es-CL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// Mostrar botón Actualizar solo en localhost
+if (!['localhost','127.0.0.1'].includes(location.hostname)) {
+  document.getElementById('btn-actualizar').style.display = 'none';
+}
+
+// ── ACTUALIZAR DATOS DESDE EXCEL (vía servidor local) ──────────
+async function actualizarDatos() {
+  const btn  = document.getElementById('btn-actualizar');
+  const icon = document.getElementById('act-icon');
+  const txt  = document.getElementById('act-text');
+
+  // Estado: cargando
+  btn.disabled = true;
+  icon.textContent = '⏳';
+  txt.textContent  = 'Actualizando...';
+
+  try {
+    const res = await fetch('http://localhost:8765/api/actualizar', {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Actualizar arrays globales
+    if (data.averias?.length)       averias       = data.averias;
+    if (data.mantenimiento?.length) mantenimiento = data.mantenimiento;
+    if (data.reparaciones?.length)  reparaciones  = data.reparaciones;
+
+    // Re-ordenar y re-renderizar
+    averiasData = sortByDateDesc(averias, 1);
+    mantData    = sortByDateDesc(mantenimiento, 1);
+    repData     = sortByDateDesc(reparaciones, 1);
+    renderAverias(averiasData);
+    renderMant(mantData);
+    renderRep(repData);
+    filterTable();
+
+    // Actualizar contadores KPI en tabs
+    const m = data._meta || {};
+    const total = (m.total_averias||0) + (m.total_mant||0) + (m.total_rep||0);
+
+    icon.textContent = '✅';
+    txt.textContent  = `${total} docs`;
+    showToast(`Datos actualizados — ${m.total_averias||0} averías · ${m.total_mant||0} mant. · ${m.total_rep||0} rep.`, 'ok');
+
+  } catch (e) {
+    icon.textContent = '⚠️';
+    txt.textContent  = 'Sin servidor';
+    showToast('Servidor no activo. Haz doble clic en iniciar_servidor.bat para iniciarlo.', 'error');
+  }
+
+  // Restaurar botón tras 4 s
+  setTimeout(() => {
+    btn.disabled = false;
+    icon.textContent = '🔄';
+    txt.textContent  = 'Actualizar';
+  }, 4000);
+}
+
+function showToast(msg, type = 'ok') {
+  const t = document.createElement('div');
+  t.className = [
+    'fixed bottom-6 right-6 z-50 max-w-sm px-5 py-3 rounded-2xl shadow-xl',
+    'text-sm font-medium text-white animate-pulse',
+    type === 'error' ? 'bg-red-500' : 'bg-emerald-600'
+  ].join(' ');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .5s'; }, 3500);
+  setTimeout(() => t.remove(), 4100);
+}
+
+
+// ── GRÁFICOS ───────────────────────────────────────────────────
+new Chart(document.getElementById('chartTipo'),{
+  type:'doughnut',
+  data:{
+    labels:['Rep. Averías','Partes Mant.','Reparaciones'],
+    datasets:[{data:[22,15,3],backgroundColor:['#f97316','#10b981','#8b5cf6'],borderWidth:2,borderColor:'#fff'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
+});
+
+new Chart(document.getElementById('chartEstado'),{
+  type:'doughnut',
+  data:{
+    labels:['Operativo','En Observación','Detenido'],
+    datasets:[{data:[15,5,2],backgroundColor:['#22c55e','#eab308','#ef4444'],borderWidth:2,borderColor:'#fff'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}}}
+});
+
+// ── CHART ASCENSOR ────────────────────────────────────────────
+function extractAscIds(str) {
+  if(!str || str==='—') return [];
+  const found = new Set();
+  // Números de equipo de 4 dígitos (1311, 1312, 1313, etc.)
+  (str.match(/\b1[0-9]{3}\b/g)||[]).forEach(n => found.add(n));
+  // Referencias tipo "Asc N"
+  (str.match(/Asc\s*\d+/gi)||[]).forEach(a => found.add(a.trim().replace(/Asc(\d)/i,'Asc $1')));
+  return [...found];
+}
+
+// Contar averías por ascensor
+const ascAverias = {};
+averias.forEach(r => {
+  extractAscIds(r[2]).forEach(id => { ascAverias[id] = (ascAverias[id]||0)+1; });
+});
+
+// Contar mantenimiento por ascensor (columnas OTM01 y OTM02)
+const ascMant = {};
+mantenimiento.forEach(r => {
+  const ids = new Set([...extractAscIds(r[3]), ...extractAscIds(r[4])]);
+  ids.forEach(id => { ascMant[id] = (ascMant[id]||0)+1; });
+});
+
+// Contar reparaciones (sin equipo específico, solo Javier→1313 implied)
+const ascRep = {};
+reparaciones.forEach(r => {
+  extractAscIds(r[5]).forEach(id => { ascRep[id] = (ascRep[id]||0)+1; });
+});
+
+// Unir y ordenar: primero numéricos, luego Asc N
+const allAscs = [...new Set([
+  ...Object.keys(ascAverias), ...Object.keys(ascMant), ...Object.keys(ascRep)
+])].sort((a,b) => {
+  const numA = parseInt(a), numB = parseInt(b);
+  if(!isNaN(numA)&&!isNaN(numB)) return numA-numB;
+  return a.localeCompare(b);
+});
+
+new Chart(document.getElementById('chartAscensor'),{
+  type:'bar',
+  data:{
+    labels: allAscs,
+    datasets:[
+      { label:'Averías',       data: allAscs.map(a=>ascAverias[a]||0), backgroundColor:'#fb923c', borderRadius:4, borderSkipped:false },
+      { label:'Mantenimiento', data: allAscs.map(a=>ascMant[a]||0),    backgroundColor:'#34d399', borderRadius:4, borderSkipped:false },
+      { label:'Reparaciones',  data: allAscs.map(a=>ascRep[a]||0),     backgroundColor:'#a78bfa', borderRadius:4, borderSkipped:false },
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ position:'top', labels:{ font:{size:11}, padding:14 } },
+      tooltip:{
+        callbacks:{
+          title: ctx => 'Equipo / Asc: ' + ctx[0].label,
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.raw} doc(s)`,
+        }
+      }
+    },
+    scales:{
+      x:{ stacked:true, grid:{display:false}, ticks:{font:{size:11}, color:'#475569'} },
+      y:{ stacked:true, beginAtZero:true, ticks:{stepSize:1, font:{size:10}}, grid:{color:'#f1f5f9'} }
+    }
+  }
+});
+
+new Chart(document.getElementById('chartTecnico'),{
+  type:'bar',
+  data:{
+    labels:['Yerho V.','Vicente V.','C. Thoron','Felipe A.','E. Saavedra','J. Chávez'],
+    datasets:[{label:'Docs',data:[5,9,4,3,3,3],
+      backgroundColor:['#3b82f6','#10b981','#f97316','#8b5cf6','#ec4899','#06b6d4'],
+      borderRadius:6,borderSkipped:false}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#f1f5f9'}},
+            x:{grid:{display:false},ticks:{font:{size:9}}}}
+  }
+});
+</script>
+</body>
+</html>
