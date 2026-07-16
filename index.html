@@ -571,43 +571,48 @@ new Chart(document.getElementById('chartEstado'),{
 });
 
 // ── CHART ASCENSOR ────────────────────────────────────────────
+// Mapa numérico → etiqueta Asc (solo mostrar Asc N en el gráfico)
+const NUM_TO_ASC = {
+  '1311':'Asc 1','1312':'Asc 2','1313':'Asc 3',
+  '1314':'Asc 4','1310':'Asc 4','1910':'Asc 4','1911':'Asc 1',
+};
+
 function extractAscIds(str) {
   if(!str || str==='—') return [];
   const found = new Set();
-  // Números de equipo de 4 dígitos (1311, 1312, 1313, etc.)
-  (str.match(/\b1[0-9]{3}\b/g)||[]).forEach(n => found.add(n));
-  // Referencias tipo "Asc N"
-  (str.match(/Asc\s*\d+/gi)||[]).forEach(a => found.add(a.trim().replace(/Asc(\d)/i,'Asc $1')));
+  // IDs numéricos → convertir a Asc N
+  (str.match(/\b1[0-9]{3}\b/g)||[]).forEach(n => {
+    if(NUM_TO_ASC[n]) found.add(NUM_TO_ASC[n]);
+  });
+  // Referencias directas tipo "Asc N"
+  (str.match(/Asc\s*\d+/gi)||[]).forEach(a => {
+    found.add(a.trim().replace(/Asc\s*(\d+)/i,'Asc $1'));
+  });
   return [...found];
 }
 
-// Contar averías por ascensor
+// Contar por tipo, agrupando en etiquetas Asc N
 const ascAverias = {};
 averias.forEach(r => {
   extractAscIds(r[2]).forEach(id => { ascAverias[id] = (ascAverias[id]||0)+1; });
 });
 
-// Contar mantenimiento por ascensor (columnas OTM01 y OTM02)
 const ascMant = {};
 mantenimiento.forEach(r => {
   const ids = new Set([...extractAscIds(r[3]), ...extractAscIds(r[4])]);
   ids.forEach(id => { ascMant[id] = (ascMant[id]||0)+1; });
 });
 
-// Contar reparaciones (sin equipo específico, solo Javier→1313 implied)
 const ascRep = {};
 reparaciones.forEach(r => {
   extractAscIds(r[5]).forEach(id => { ascRep[id] = (ascRep[id]||0)+1; });
 });
 
-// Unir y ordenar: primero numéricos, luego Asc N
+// Solo etiquetas "Asc N", ordenadas numéricamente
 const allAscs = [...new Set([
   ...Object.keys(ascAverias), ...Object.keys(ascMant), ...Object.keys(ascRep)
-])].sort((a,b) => {
-  const numA = parseInt(a), numB = parseInt(b);
-  if(!isNaN(numA)&&!isNaN(numB)) return numA-numB;
-  return a.localeCompare(b);
-});
+])].filter(a => /^Asc\s*\d/i.test(a))
+  .sort((a,b) => parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
 
 new Chart(document.getElementById('chartAscensor'),{
   type:'bar',
